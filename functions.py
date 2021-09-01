@@ -143,15 +143,28 @@ class LargeSystem:
                 A[i,j]=sim(([l for l in np.flatnonzero(X[j,:])]),([l for l in np.flatnonzero(X[i,:])]))
         return A
 
-    def DistanceMatrix_dropout(X,dropout_prob):
-        A=np.zeros([len(X),len(X)])
+    def DistanceMatrix_dropout_conditional(X, dropout_prob, p_i):
+        A = np.zeros([len(X), len(X)])
         for i in range(len(X)):
-            for j in range(len(X)):
-                Union_len=len(set([l for l in np.flatnonzero(X[i,:])]) | set([l for l in np.flatnonzero(X[j,:])]))
-                Pij_sim_len = len((set([l for l in np.flatnonzero(X[i,:])]) | set([l for l in np.flatnonzero(X[j,:])])) & set([l for l in np.flatnonzero(X[i,:])]))
-                Pji_sim_len = len((set([l for l in np.flatnonzero(X[i,:])]) | set([l for l in np.flatnonzero(X[j,:])])) & set([l for l in np.flatnonzero(X[j,:])]))
-                A[i,j]=(1-dropout_prob)**Pij_sim_len*dropout_prob**(Union_len-Pij_sim_len)*(1-dropout_prob)**Pji_sim_len*dropout_prob**(Union_len-Pji_sim_len)
-                if j==i:
-                    A[i,j]=1
-        return A
+            for j in range(i + 1):
+                Union_len = len(set([l for l in np.flatnonzero(X[i, :])]) | set([l for l in np.flatnonzero(X[j, :])]))
+                Overlap_len = len(set([l for l in np.flatnonzero(X[i, :])]) & set([l for l in np.flatnonzero(X[j, :])]))
+                Pij_sim_len = len(
+                    (set([l for l in np.flatnonzero(X[i, :])]) | set([l for l in np.flatnonzero(X[j, :])])) & set(
+                        [l for l in np.flatnonzero(X[i, :])]))
+                Pji_sim_len = len(
+                    (set([l for l in np.flatnonzero(X[i, :])]) | set([l for l in np.flatnonzero(X[j, :])])) & set(
+                        [l for l in np.flatnonzero(X[j, :])]))
+                # A[i,j]=0.5*((1-dropout_prob)**Pij_sim_len*dropout_prob**(Union_len-Pij_sim_len)+(1-dropout_prob)**Pji_sim_len*dropout_prob**(Union_len-Pji_sim_len))
+                A[i, j] = ((1 - dropout_prob) ** Pij_sim_len * dropout_prob ** (Union_len - Pij_sim_len) * (
+                            1 - dropout_prob) ** Pji_sim_len * dropout_prob ** (Union_len - Pji_sim_len))
+                S1 = len(set([l for l in np.flatnonzero(X[i, :])]))
+                S2 = len(set([l for l in np.flatnonzero(X[j, :])]))
+                B = (p_i) ** Overlap_len * (1 - p_i) ** (len(X) - Overlap_len) * (
+                            scipy.special.binom(100, S1) * scipy.special.binom(len(X), S2) / (
+                        scipy.special.binom(100, Union_len)))
+                A[j, i] = A[i, j]
+                if j == i:
+                    A[i, j] = 1
+        return (A / B)
 
