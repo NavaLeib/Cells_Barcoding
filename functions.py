@@ -101,7 +101,10 @@ def NetworkPlot(A,labels,edge_width=0.1,node_size=10):
     nx.draw_networkx(G,pos=pos,width=edge_width,node_size=[v * node_size for v in d.values()],node_color=[(v-2)**0.5  for v in d.values()])
 
 def sim(list1,list2):
-    res = len(set(list1) & set(list2)) / float(len(set(list1) | set(list2))) 
+    if float(len(set(list1) | set(list2)))>0:
+        res = len(set(list1) & set(list2)) / float(len(set(list1) | set(list2)))
+    else:
+        res=1
     return float(res)
 
 class LargeSystem:
