@@ -1,8 +1,8 @@
 
 from functions import *
 
-barcodes = 10 ** 4
-cells = 10 ** 3
+barcodes = 10 ** 2
+cells = 10 ** 2
 
 wrong_lin_split_hamming = np.zeros([20, 10, 2000])  # dimensions [p_inseration, p_dropouts, thershold ]
 wrong_lin_merge_hamming = np.zeros([20, 10, 2000])  # dimensions [p_inseration, p_dropouts, thershold ]
@@ -70,7 +70,7 @@ for p_i in range(3):
     df['propgation' + str(3 * gens) + '_true'] = barcodes_id_list(np.array(system6))
 
     Total_true = np.concatenate((system2, system4, system6))
-    A_total_true = LargeSystem.Rapid_SimilarityMatrix(Total_true)
+    A_total_true = system_init.Rapid_SimilarityMatrix(Total_true)
 
     df_total = pd.DataFrame(barcodes_id_list(Total_true), columns=['true'])
 
@@ -87,25 +87,25 @@ for p_i in range(3):
         # p_drop=p_d/10
         p_drop = drop[p_d]
 
-        system_true_drop = LargeSystem.dropouts(np.array(system_true).copy(), p=p_drop)
+        system_true_drop = system_init.dropouts(np.array(system_true).copy(), p=p_drop)
 
         df['drop0'] = barcodes_id_list(np.array(system_true_drop))
 
         # A_dist0=LargeSystem.SimilarityMatrix(system_true_drop)
 
-        system2_drop = LargeSystem.dropouts(np.array(system2).copy(), p=p_drop)
+        system2_drop = system_init.dropouts(np.array(system2).copy(), p=p_drop)
 
         df['drop1'] = barcodes_id_list(np.array(system2_drop))
 
         # A_dist1=LargeSystem.Rapid_SimilarityMatrix(system2_drop)
 
-        system4_drop = LargeSystem.dropouts(np.array(system4).copy(), p=p_drop)
+        system4_drop = system_init.dropouts(np.array(system4).copy(), p=p_drop)
 
         df['drop2'] = barcodes_id_list(np.array(system4_drop))
 
         # A_dist2=LargeSystem.Rapid_SimilarityMatrix(system4_drop)
 
-        system6_drop = LargeSystem.dropouts(np.array(system6).copy(), p=p_drop)
+        system6_drop = system_init.dropouts(np.array(system6).copy(), p=p_drop)
 
         df['drop3'] = barcodes_id_list(np.array(system6_drop))
 
@@ -114,9 +114,9 @@ for p_i in range(3):
         Total_drop = np.concatenate((system2_drop, system4_drop, system6_drop))
 
         #######
-        A_total_drop_Hamming = LargeSystem.Rapid_SimilarityMatrix(Total_drop)
-        A_total_drop_drop = LargeSystem.DistanceMatrix_dropout(Total_drop, dropout_prob=p_drop)
-        A_total_drop_ins = LargeSystem.DistanceMatrix_dropout_conditional(Total_drop, dropout_prob=p_drop, p_i=p)
+        A_total_drop_Hamming = system_init.Rapid_SimilarityMatrix(Total_drop)
+        A_total_drop_drop = system_init.DistanceMatrix_dropout(Total_drop, dropout_prob=p_drop)
+        A_total_drop_ins = system_init.DistanceMatrix_dropout_conditional(Total_drop, dropout_prob=p_drop, p_i=p)
         #######
 
         A_total_drop_Hamming = A_total_drop_Hamming / (A_total_drop_Hamming.max())
@@ -125,7 +125,7 @@ for p_i in range(3):
 
         df_total['dropped'] = barcodes_id_list(Total_drop)
 
-        A_total_drop_CompleteOverlap = LargeSystem.NumBarcodesDiff(Total_drop)
+        A_total_drop_CompleteOverlap = system_init.NumBarcodesDiff(Total_drop)
         clustering_total = AgglomerativeClustering(distance_threshold=epsilon, n_clusters=None, affinity='precomputed',
                                                    linkage='complete',
                                                    compute_full_tree=True).fit(A_total_drop_CompleteOverlap)

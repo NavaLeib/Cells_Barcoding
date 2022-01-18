@@ -152,7 +152,7 @@ class LargeSystem:
         self.X = XX
         return self.X
 
-    def dropouts(X, p):
+    def dropouts(self,X, p):
         barcodes = X.shape[1]
         cells = X.shape[0]
         #    print(barcodes, cells)
@@ -163,7 +163,7 @@ class LargeSystem:
                         X[i][bar] = 0
         return X
 
-    def Rapid_SimilarityMatrix(X):
+    def Rapid_SimilarityMatrix(self,X):
         cells = X.shape[0]
         A = np.identity(cells)
         CellsIndexSetS = set(np.arange(cells))
@@ -174,21 +174,21 @@ class LargeSystem:
             A[j, i] = A[i, j]
         return 1 - A
 
-    def SimilarityMatrix(X):
+    def SimilarityMatrix(self,X):
         A = np.zeros([len(X), len(X)])
         for i in range(len(X)):
             for j in range(len(X)):
                 A[i, j] = sim(([l for l in np.flatnonzero(X[j, :])]), ([l for l in np.flatnonzero(X[i, :])]))
         return 1 - A
 
-    def NumBarcodesDiff(X):
+    def NumBarcodesDiff(self,X):
         A = np.zeros([len(X), len(X)])
         for i in range(len(X)):
             for j in range(len(X)):
                 A[i, j] = sum(abs(X[j, :] - X[i, :]))
         return A
 
-    def DistanceMatrix_dropout(X, dropout_prob):
+    def DistanceMatrix_dropout(self,X, dropout_prob):
         A = np.zeros([len(X), len(X)])
         for i in range(len(X)):
             for j in range(i + 1):
@@ -208,7 +208,7 @@ class LargeSystem:
                     A[i, j] = 1
         return (1 - A)
 
-    def DistanceMatrix_dropout_conditional(X, dropout_prob, p_i):
+    def DistanceMatrix_dropout_conditional(self,X, dropout_prob, p_i):
         A = np.zeros([len(X), len(X)])
         cells = X.shape[0]
         barcodes = X.shape[1]
