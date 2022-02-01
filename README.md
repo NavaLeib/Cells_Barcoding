@@ -1,8 +1,12 @@
 # Cells_Barcoding
 
-/*Goal*/: Generate synthetic data of barcoded cells. 
+*Goal*: 
 
-/*Including: */
+Generate synthetic data of barcoded cells. 
+
+
+*Including:*
+
 Seeding - a given number of cells with random barcodes set (Binomial/Poisson and others)
 
 Propgating - grow cells with time
