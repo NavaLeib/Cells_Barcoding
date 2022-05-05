@@ -1,8 +1,17 @@
 
 from functions import *
 
+from sklearn.cluster import KMeans
+from sklearn import metrics
+
+import csv
+
 barcodes = 10 ** 2
 cells = 10 ** 2
+
+
+p1=[]
+p2=[]
 
 wrong_lin_split_hamming = np.zeros([20, 10, 2000])  # dimensions [p_inseration, p_dropouts, thershold ]
 wrong_lin_merge_hamming = np.zeros([20, 10, 2000])  # dimensions [p_inseration, p_dropouts, thershold ]
@@ -40,7 +49,7 @@ epsilon = 10 ** -323
 data_full = {}
 
 ins = [0.5, 2, 10]
-for p_i in range(3):
+for p_i in range(1):
 
     # p_ins=p_i+0.5
     p_ins = ins[p_i]
@@ -59,15 +68,17 @@ for p_i in range(3):
 
     sys = Simulation(barcodes=barcodes, cells=cells, generations=1)
 
-    gens = 30
-    system2 = sys.run(system_true, 5)
-    df['propgation' + str(gens) + '_true'] = barcodes_id_list(np.array(system2))
+    gens1 = 5
+    system2 = sys.run(system_true, gens1)
+    df['propagation_' + str(gens1) + 'geneartions_true'] = barcodes_id_list(np.array(system2))
 
-    system4 = sys.run(system2, 5)
-    df['propgation' + str(2 * gens) + '_true'] = barcodes_id_list(np.array(system4))
+    gens2 = 5
+    system4 = sys.run(system2, gens2 )
+    df['propagation_' + str(gens1+gens2) + 'geneartions_true'] = barcodes_id_list(np.array(system4))
 
-    system6 = sys.run(system4, 10)
-    df['propgation' + str(3 * gens) + '_true'] = barcodes_id_list(np.array(system6))
+    gens3 = 5
+    system6 = sys.run(system4, gens3)
+    df['propagation_' + str(gens1+gens2+gens3) + 'geneartions_true'] = barcodes_id_list(np.array(system6))
 
     Total_true = np.concatenate((system2, system4, system6))
     A_total_true = system_init.Rapid_SimilarityMatrix(Total_true)
@@ -81,8 +92,12 @@ for p_i in range(3):
     df_total['true_cluster'] = clustering_total.labels_
 
     print('p_ins=', p_ins)
+
+    df.to_csv('true_barcodes_list_id_cells' +str(cells) + '_barcodes' + str(barcodes) +
+              '_moi' + str(p_ins) + '.csv', index=False)
+
     drop = [0, 0.01, 0.1, 0.5]
-    for p_d in range(4):
+    for p_d in range(2,3):
 
         # p_drop=p_d/10
         p_drop = drop[p_d]
@@ -111,6 +126,10 @@ for p_i in range(3):
 
         # A_dist3=LargeSystem.Rapid_SimilarityMatrix(system6_drop)
 
+        A_drop1_Hamming = system_init.Rapid_SimilarityMatrix(system2_drop)
+        A_drop1_drop = system_init.DistanceMatrix_dropout(system2_drop, dropout_prob=p_drop)
+        A_drop1_ins = system_init.DistanceMatrix_dropout_conditional(system2_drop, dropout_prob=p_drop, p_i=p)
+
         Total_drop = np.concatenate((system2_drop, system4_drop, system6_drop))
 
         #######
@@ -126,13 +145,13 @@ for p_i in range(3):
         df_total['dropped'] = barcodes_id_list(Total_drop)
 
         A_total_drop_CompleteOverlap = system_init.NumBarcodesDiff(Total_drop)
-        clustering_total = AgglomerativeClustering(distance_threshold=epsilon, n_clusters=None, affinity='precomputed',
+        clustering_total_drop = AgglomerativeClustering(distance_threshold=epsilon, n_clusters=None, affinity='precomputed',
                                                    linkage='complete',
                                                    compute_full_tree=True).fit(A_total_drop_CompleteOverlap)
 
-        df_total['dropped_cluster'] = clustering_total.labels_
+        df_total['dropped_cluster'] = clustering_total_drop.labels_
 
-        Clustering_Threshold: int
+
         for Clustering_Threshold in range(200):
             Thres = Clustering_Threshold / 199 + epsilon
 
@@ -191,25 +210,51 @@ for p_i in range(3):
             number_cluster_after_matching_drop_ins[p_i, p_d, Clustering_Threshold] = df_total[
                 df_total['dropped'] != ''].matching_after_drop_cluster_drop_ins.nunique()
 
+            num=number_true_clusters[p_i, p_d, 0]
+            X=np.array(Total_drop, dtype=np.float64)
+            km=KMeans(n_clusters=int(num)).fit(np.array(X))
+            kmeanlabels=km.labels_
+            #print([metrics.adjusted_mutual_info_score(clustering_total.labels_, kmeanlabels),
+            #      metrics.adjusted_mutual_info_score(clustering_total.labels_, clustering_total_Hamming.labels_)])
+            print(metrics.homogeneity_completeness_v_measure(clustering_total.labels_, clustering_total_Hamming.labels_))
+            print(
+                metrics.homogeneity_completeness_v_measure(clustering_total.labels_, clustering_total_drop.labels_))
+            p1.append(metrics.homogeneity_completeness_v_measure(clustering_total.labels_, clustering_total_drop.labels_))
+            p2.append(metrics.homogeneity_completeness_v_measure(clustering_total.labels_, clustering_total_Hamming.labels_))
+
+
+
+
         #  Num_of_measured_lin[p_i,p_d,Clustering_Threshold]=number_cluster_after_matching[p_i,p_d,Clustering_Threshold]/number_true_clusters[p_i,p_d,Clustering_Threshold]-1
 
         R = list(abs(1 - number_cluster_after_matching_Hamming[p_i, p_d, :] / number_true_clusters[p_i, p_d, 0]))
         best_i = R.index(min(R))
+        print(best_i)
         score_split_Hamming[p_i, p_d] = wrong_lin_split_hamming[p_i, p_d, best_i]
         score_merge_Hamming[p_i, p_d] = wrong_lin_merge_hamming[p_i, p_d, best_i]
         best_dist_Hamming[p_i, p_d] = best_i / 199 + epsilon
 
+        #plt.plot(p1,label='p1')
+        plt.plot(p1,'--')
+        #plt.plot(wrong_lin_split_hamming[p_i, p_d, :],'.',label='split')
+        #plt.plot(wrong_lin_merge_hamming[p_i, p_d, :],'*',label='merge')
+        #plt.legend()
+        plt.plot(p2, '-')
+        plt.gca().legend(('homogeneity - drop', 'completeness', 'v_measure','homogeneity-hamming', 'completeness', 'v_measure'))
+        plt.show()
+
         R = list(abs(1 - number_cluster_after_matching_drop[p_i, p_d, :] / number_true_clusters[p_i, p_d, 0]))
         best_i = R.index(min(R))
+        print(best_i)
         score_split_drop[p_i, p_d] = wrong_lin_split_drop[p_i, p_d, best_i]
         score_merge_drop[p_i, p_d] = wrong_lin_merge_drop[p_i, p_d, best_i]
-        best_dist_drop[p_i, p_d] = best_i / 199 + epsilon
+        best_dist_drop[p_i, p_d] = best_i / 19 + epsilon
 
         R = list(abs(1 - number_cluster_after_matching_drop_ins[p_i, p_d, :] / number_true_clusters[p_i, p_d, 0]))
         best_i = R.index(min(R))
         score_split_drop_ins[p_i, p_d] = wrong_lin_split_drop_ins[p_i, p_d, best_i]
         score_merge_drop_ins[p_i, p_d] = wrong_lin_merge_drop_ins[p_i, p_d, best_i]
-        best_dist_drop_ins[p_i, p_d] = best_i / 199 + epsilon
+        best_dist_drop_ins[p_i, p_d] = best_i / 19 + epsilon
 
         print(p_i,p_d,score_split_Hamming[p_i,p_d])
 
