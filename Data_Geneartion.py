@@ -6,6 +6,24 @@ from sklearn import metrics
 
 import csv
 
+
+# import requests
+import csv
+import glob
+import shutil
+import pathlib
+#from fileUtil import writeFile
+#from zipperUtil import unzip
+import os
+#from splitLog import logSplit
+import matplotlib.pyplot as plt
+#from xlsxwriter.workbook import Workbook
+
+path = str(pathlib.Path(__file__).parent.resolve())
+# get folder
+
+
+
 barcodes = 10 ** 3
 cells = 10 ** 3
 
@@ -93,8 +111,16 @@ for p_i in range(3):
 
     print('p_ins=', p_ins)
 
-    df.to_csv('true_barcodes_list_id_cells' +str(cells) + '_barcodes' + str(barcodes) +
-              '_moi' + str(p_ins) + '.csv', index=False)
+    outname = 'barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) +\
+              '_moi' + str(p_ins) + '_nodrop.csv'
+
+    root = 'Data'
+    subdir = 'cells'+ str(cells) + '_barcodes' + str(barcodes)
+    outdir = os.path.join(root, subdir)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    df.to_csv(f"{outdir}/{outname}")
 
     drop = [0, 0.01, 0.1, 0.5]
     for p_d in range(1,4):
@@ -120,8 +146,11 @@ for p_i in range(3):
 
         df['drop_' + str(gens1 + gens2+ gens3) + 'generation'] = barcodes_id_list(np.array(system6_drop))
 
-        df.to_csv('barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) +
-                  '_moi' + str(p_ins) + '_drop' + str(p_drop) + '.csv', index=False)
+        outname = 'barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + \
+                  '_moi' + str(p_ins) + '_drop' + str(p_drop) + '.csv'
+
+        df.to_csv(f"{outdir}/{outname}")
+
 
 
 
