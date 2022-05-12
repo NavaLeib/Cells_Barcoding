@@ -24,7 +24,7 @@ path = str(pathlib.Path(__file__).parent.resolve())
 
 
 
-barcodes = 10 ** 3
+barcodes = 10 ** 4
 cells = 10 ** 3
 
 
