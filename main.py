@@ -8,7 +8,7 @@ import os
 import csv
 
 import matplotlib.pyplot as plt
-barcodes = 10 ** 4
+barcodes = 10 ** 3
 cells = 10 ** 3
 
 
@@ -89,6 +89,10 @@ for p_i in range(3):#range(len(ins)):
         df=data[file_name]
 
         print('start analysis; p_ins:', p_ins, ', p_drop:', p_drop)
+        analysis = Lineages_Analysis(df)
+        analysis.num_lineages_between_times(['propagation_5geneartions_true', 'propagation_10geneartions_true'])
+        analysis.num_lineages_between_times(['drop_5generation','drop_10generation'])
+
         analysis = System_Analysis(df)
         key = 'propagation_5geneartions_true'
         v_score= analysis.clustering_score(key_true= 'propagation_5geneartions_true', key_drop = 'drop_5generation')

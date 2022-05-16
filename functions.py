@@ -300,6 +300,27 @@ class System_Analysis:
             V_measured.append(v_measure)
         return max(V_measured)
 
+class Lineages_Analysis:
+
+    def __init__(self,df):
+        self.df = df
+
+    def num_lineages_between_times(self, times):
+        df = self.df
+        propagated_time_key =[]
+        total=[]
+        for item in times:
+            propagated_time_key.append(item)
+            total = np.concatenate((total,df[item]))
+        df_total = pd.DataFrame(total, columns=['cells_true_id_all'])
+        detected_cells_id = ~(df_total.isnull())
+        sys_all = System_Analysis(df_total)
+        clustering_true = sys_all.clustering(key='cells_true_id_all', Threshold=10 ** -300)
+        print(max(clustering_true))
+
+
+
+
 
 
 class Simulation:
