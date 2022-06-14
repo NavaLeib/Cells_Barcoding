@@ -99,6 +99,9 @@ for p_i in range(3):#range(len(ins)):
         print(v_score)
         T[p_i,p_d] = v_score
 
+        perfect_clust= analysis.number_of_perfect_clusters(key_true= 'propagation_5geneartions_true', key_drop = 'drop_5generation')
+
+
         num_measured_cells[p_i,p_d] = df.shape[0]-df[df['drop_5generation'].isnull()].shape[0]
         print('start analysis; p_ins:', p_ins, 'p_drop', p_drop, 'measured cells', num_measured_cells[p_i,p_d])
         print(T[:3,:4])

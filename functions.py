@@ -18,6 +18,9 @@ import pandas as pd
 import itertools
 
 import matplotlib.pyplot as plt
+from sklearn.metrics.cluster import contingency_matrix
+
+
 
 
 class SmallSystem:
@@ -299,6 +302,42 @@ class System_Analysis:
                 metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id], clustering_drop[detected_cells_id])
             V_measured.append(v_measure)
         return max(V_measured)
+
+    def number_of_perfect_clusters(self, key_true, key_drop):
+        df = self.df
+        detected_cells_id = ~(df[key_drop].isnull())
+
+        clustering_true = self.clustering(key=key_true, Threshold=10 ** -300)
+
+        V_measured = []
+        for Clustering_Threshold in range(20):
+            Thres = Clustering_Threshold / 19 + 10 ** -300
+            clustering_drop = self.clustering(key=key_drop, Threshold=Thres)
+            (homogeneity, completeness, v_measure) = \
+                metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id],
+                                                           clustering_drop[detected_cells_id])
+            V_measured.append(v_measure)
+        V_index = V_measured.index(max(V_measured))
+        Threshold = V_index / 19 + 10 ** -300
+        labels_pred = self.clustering(key=key_true, Threshold=Threshold)
+        label_true = self.clustering(key=key_drop, Threshold=10 ** -300)
+        A = contingency_matrix(label_true, labels_pred)
+        (num_true_clust, num_pred_clust) = A.shape
+
+        num = 0
+        for row in range(num_true_clust):
+            if len(np.where(A[row] > 0)[0]) == 1:
+                # print(row)
+                # print(A[row])
+                col = np.where(A[row] > 0)[0]
+                # print(col)
+                # print(A[:,col])
+                # print(sum(A[:,col]))
+                if sum(A[:, col])[0] == A[row, col]:
+                    num = num + 1
+
+        print("#perfect_clusters=", num)
+        return num
 
 class Lineages_Analysis:
 
