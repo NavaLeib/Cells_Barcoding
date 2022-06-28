@@ -8,7 +8,7 @@ from sklearn import metrics
 
 import numpy as np
 from difflib import SequenceMatcher
-import networkx as nx
+#import networkx as nx
 import random
 import math
 import scipy.special
@@ -301,7 +301,10 @@ class System_Analysis:
             (homogeneity, completeness, v_measure) = \
                 metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id], clustering_drop[detected_cells_id])
             V_measured.append(v_measure)
-        return max(V_measured)
+            
+        V_index=V_measured.index(max(V_measured))
+        Threshold = V_index /19 + 10**-300
+        return (max(V_measured), Threshold)
 
     def number_of_perfect_clusters(self, key_true, key_drop):
         df = self.df
@@ -325,6 +328,7 @@ class System_Analysis:
         (num_true_clust, num_pred_clust) = A.shape
 
         num = 0
+        perfect_clusters_id_in_drop=[]
         for row in range(num_true_clust):
             if len(np.where(A[row] > 0)[0]) == 1:
                 # print(row)
@@ -335,27 +339,71 @@ class System_Analysis:
                 # print(sum(A[:,col]))
                 if sum(A[:, col])[0] == A[row, col]:
                     num = num + 1
+                    perfect_clusters_id_in_drop.append(col)
 
         print("#perfect_clusters=", num)
-        return num
+        return (num,perfect_clusters_id_in_drop)
 
 class Lineages_Analysis:
 
     def __init__(self,df):
         self.df = df
 
-    def num_lineages_between_times(self, times):
+    def num_lineages_between_times(self, times_true, times_drop):
+
+        # Globaly clustering over all given times
         df = self.df
-        propagated_time_key =[]
+        # propagated_time_key_true =[]
+        # propagated_time_key_drop=[]
         total=[]
-        for item in times:
-            propagated_time_key.append(item)
-            total = np.concatenate((total,df[item]))
-        df_total = pd.DataFrame(total, columns=['cells_true_id_all'])
+        total_true=[]
+        total_drop=[]
+        for (item_true, item_drop) in zip(times_true,times_drop):
+            # propagated_time_key_true.append(item_true)
+            # propagated_time_key_drop.append(item_drop)
+            total_true = np.concatenate((total_true,df[item_true]))
+            total_drop = np.concatenate((total_drop,df[item_drop]))
+        df_total = pd.DataFrame(total_true, columns=['cells_id_all_true'])
+        df_total['cells_id_all_drop'] = total_drop
         detected_cells_id = ~(df_total.isnull())
         sys_all = System_Analysis(df_total)
-        clustering_true = sys_all.clustering(key='cells_true_id_all', Threshold=10 ** -300)
-        print(max(clustering_true))
+
+        (v_score, Thres) =  sys_all.clustering_score(key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+
+        df_total['gloabl_cluster']= sys_all.clustering( key ='cells_id_all_drop' , Threshold = Thres)
+
+        #print(df_total)
+
+        #find the perfect global clusters      
+        (num_clustering_true,perfect_clusters_id_in_drop) = sys_all.number_of_perfect_clusters(key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+        #print('# perfect_clusters = ',  (num_clustering_true,perfect_clusters_id_in_drop))
+
+        #count perfect clusters propagate through time
+        init=0
+        j=0
+        sets=[set() for i in range(len(times_true))]
+
+        for (item_true, item_drop) in zip(times_true,times_drop):
+            num_detected_cells_in_each_prop = (~(df[item_drop].isnull())).shape[0]
+            fini = init + min(num_detected_cells_in_each_prop,df.shape[0])
+        #    print(item_drop,num_detected_cells_in_each_prop,fini)
+            sets[j]=set(df_total['gloabl_cluster'][init:fini-1])
+        #    print(sets[j])
+            init = fini
+            j = j+1
+
+        prop_set = sets[0]
+        #print(prop_set, sets[0] & sets[1])
+        for i in range(len(sets)):
+          prop_set = prop_set & sets[i]
+        #  print(prop_set)
+
+        print('len_prop_set=',len(prop_set))
+        
+        return len(prop_set)
+        
+
+        
 
 
 

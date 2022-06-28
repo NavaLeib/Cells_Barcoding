@@ -67,7 +67,8 @@ epsilon = 10 ** -323
 data_full = {}
 
 ins = [0.5, 2, 10]
-for p_i in range(3):
+ins=[5]
+for p_i in range(1):
 
     # p_ins=p_i+0.5
     p_ins = ins[p_i]

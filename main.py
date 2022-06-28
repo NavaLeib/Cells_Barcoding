@@ -8,7 +8,7 @@ import os
 import csv
 
 import matplotlib.pyplot as plt
-barcodes = 10 ** 3
+barcodes = 10 ** 4
 cells = 10 ** 3
 
 
@@ -55,7 +55,7 @@ path = 'Data'
 file_extension = '.csv'
 csv_file_list = []
 for root, dirs, files in os.walk(path):
-  #  print(root, dirs, files)
+    #print(root, dirs, files)
     for name in files:
         if name.endswith(file_extension):
             file_path = os.path.join(root, name)
@@ -63,8 +63,12 @@ for root, dirs, files in os.walk(path):
 
 data={}
 for f in csv_file_list:
-    file_name=f[f.rfind('\\'):]
+    #file_name=f[f.rfind('\\'):]  ##THIS CHANGE TO RUN ON UOT SEREVER ONLY
+    file_name=f[f.rfind('/'):][1:]
+    #print(f,file_name, '\n')
     data[file_name] = pd.read_csv(f)
+
+#print(data.keys())
 
 print('UPLOAD DATA')
 
@@ -72,7 +76,9 @@ print('UPLOAD DATA')
 ins=[0.5,2,10]  #MOI array
 drop = [0, 0.01, 0.1, 0.5]  #probability drop array
 
-for p_i in range(3):#range(len(ins)):
+ins=[0.5,2,5,10]  #MOI array  ##ADDED TO 10^3 CELLS ONLY MOI=5!!! 
+
+for p_i in range(4):#range(len(ins)):
     p_ins= ins[p_i]
 
     for p_d in range(1,4):
@@ -80,34 +86,43 @@ for p_i in range(3):#range(len(ins)):
 
         p_drop = drop[p_d]
 
-        file_name = '\\barcodes_list_id_cells' + str(cells) +'_barcodes' +str(barcodes) + '_moi' + str(p_ins) + \
+        ##THIS CHANGE TO RUN ON UOT SEREVER ONLY
+        #file_name = '\\barcodes_list_id_cells' + str(cells) +'_barcodes' +str(barcodes) + '_moi' + str(p_ins) + \
+        #            '_drop' + str(p_drop) + '.csv'
+        #if p_drop == 0:
+        #    file_name = '\\barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + '_moi' + str(p_ins) + \
+        #                '_nodrop.csv'
+                        
+                        
+        file_name = 'barcodes_list_id_cells' + str(cells) +'_barcodes' +str(barcodes) + '_moi' + str(p_ins) + \
                     '_drop' + str(p_drop) + '.csv'
         if p_drop == 0:
-            file_name = '\\barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + '_moi' + str(p_ins) + \
+            file_name = 'barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + '_moi' + str(p_ins) + \
                         '_nodrop.csv'
 
         df=data[file_name]
 
         print('start analysis; p_ins:', p_ins, ', p_drop:', p_drop)
         analysis = Lineages_Analysis(df)
-        analysis.num_lineages_between_times(['propagation_5geneartions_true', 'propagation_10geneartions_true'])
-        analysis.num_lineages_between_times(['drop_5generation','drop_10generation'])
+        analysis.num_lineages_between_times(['propagation_5geneartions_true', 'propagation_10geneartions_true','propagation_15geneartions_true'],
+        ['drop_5generation', 'drop_10generation','drop_15generation'])
+        # analysis.num_lineages_between_times(['drop_5generation','drop_10generation'])
+        #
+        #analysis = System_Analysis(df)
+        #key = 'propagation_5geneartions_true'
+        #(v_score, Threshold)= analysis.clustering_score(key_true= 'propagation_5geneartions_true', key_drop = 'drop_5generation')
+        #print(v_score)
+        #T[p_i,p_d] = v_score
 
-        analysis = System_Analysis(df)
-        key = 'propagation_5geneartions_true'
-        v_score= analysis.clustering_score(key_true= 'propagation_5geneartions_true', key_drop = 'drop_5generation')
-        print(v_score)
-        T[p_i,p_d] = v_score
-
-        perfect_clust= analysis.number_of_perfect_clusters(key_true= 'propagation_5geneartions_true', key_drop = 'drop_5generation')
-
-
-        num_measured_cells[p_i,p_d] = df.shape[0]-df[df['drop_5generation'].isnull()].shape[0]
-        print('start analysis; p_ins:', p_ins, 'p_drop', p_drop, 'measured cells', num_measured_cells[p_i,p_d])
-        print(T[:3,:4])
+        #perfect_clust= analysis.number_of_perfect_clusters(key_true= 'propagation_5geneartions_true', key_drop = 'drop_5generation')
 
 
-    print(num_measured_cells[:3,:4])
+        #num_measured_cells[p_i,p_d] = df.shape[0]-df[df['drop_5generation'].isnull()].shape[0]
+        #print('start analysis; p_ins:', p_ins, 'p_drop', p_drop, 'measured cells', num_measured_cells[p_i,p_d])
+        #print(T[:4,:4])
+
+
+    print(num_measured_cells[:4,:4])
     # clustering = AgglomerativeClustering(distance_threshold=epsilon, n_clusters=None, affinity='precomputed',
     #                                      linkage='complete',
     #                                      compute_full_tree=True).fit(Sim_Matrix)
