@@ -24,7 +24,7 @@ path = str(pathlib.Path(__file__).parent.resolve())
 
 
 
-barcodes = 10 ** 4
+barcodes = 10 ** 3
 cells = 10 ** 3
 
 
@@ -66,16 +66,16 @@ epsilon = 10 ** -323
 
 data_full = {}
 
-ins = [0.5, 2, 10]
-ins=[5]
-for p_i in range(1):
+ins = [0.5, 2,5, 10]
+#ins=[5]
+for p_i in range(4):
 
     # p_ins=p_i+0.5
     p_ins = ins[p_i]
 
     system_init = LargeSystem(barcodes=barcodes, cells=cells)
     p = p_ins / barcodes
-    system_true = system_init.generate_barcoded_cells(p=p, Poisson=True)
+    system_true = system_init.generate_barcoded_cells(p=p, Poisson=False)
 
     system_true = system_true[system_true.sum(axis=1) > 0]  # taking only cells with labels (=barcodes inserted)
 
