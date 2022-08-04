@@ -8,7 +8,7 @@ from sklearn import metrics
 
 import numpy as np
 from difflib import SequenceMatcher
-#import networkx as nx
+# import networkx as nx
 import random
 import math
 import scipy.special
@@ -19,8 +19,6 @@ import itertools
 
 import matplotlib.pyplot as plt
 from sklearn.metrics.cluster import contingency_matrix
-
-
 
 
 class SmallSystem:
@@ -133,6 +131,27 @@ def BarcodesSet(X):
 '''
 
 
+def exponential_generator_system(cells, barcodes, exp_scale):
+    p_ins_exp = np.exp(-np.arange(barcodes) / exp_scale) / (np.exp(-np.arange(barcodes) / exp_scale).sum())
+    rng = np.random.default_rng()
+    system = np.zeros(shape=(cells, barcodes))
+    for cell in range(cells):
+        L = int(np.random.exponential(scale=exp_scale))
+        bar_index = []
+        p_ins_temp = p_ins_exp.copy()
+        temp = 0
+        for i in range(L):
+            temp = rng.multinomial(1, p_ins_temp / (p_ins_temp.sum()), size=None)
+            new_index = [i for i, x in enumerate(temp) if x == 1]
+            p_ins_temp = np.zeros(cells)
+            bar_index.extend(new_index)
+            for j in range(cells):
+                p_ins_temp[j] = 0 if j in bar_index else p_ins_exp[j]
+        system[cell, bar_index] = 1
+        bar_index = []
+    return system
+
+
 class LargeSystem:
 
     def __init__(self, barcodes, cells):
@@ -150,10 +169,12 @@ class LargeSystem:
                     if np.random.rand() <= p:
                         XX[i][bar] = 1
         else:
-            for bar in range(barcodes):
-                for i in range(cells):
-                    if np.random.rand() <= (XX[i, :].sum() / barcodes) ** (1 / 1) + 1 / (2 * barcodes):
-                        XX[i][bar] = 1
+            #     for bar in range(barcodes):
+            #         for i in range(cells):
+            #             if np.random.rand() <= (XX[i, :].sum() / barcodes) ** (1 / 1) + 1 / (2 * barcodes):
+            #                 XX[i][bar] = 1
+            # self.X = XX
+            XX = exponential_generator_system(cells, barcodes, p * barcodes)
         self.X = XX
         return self.X
 
@@ -247,15 +268,13 @@ class LargeSystem:
             if j == i:
                 A[i, j] = 0
 
-        return A
-
 
 class System_Analysis:
 
     def __init__(self, df):
-        self.df = df  # the data frame to be analyzed
+        self.df = df.applymap(lambda x: str(x).split('.0')[0])  # the data frame to be analyzed
 
-    def Rapid_SimilarityMatrix(self,key):
+    def Rapid_SimilarityMatrix(self, key):
         """
         This function generate the similarity matrix (Hummin) between every pair of cells within a given
         #cell , #barcodes, MOI and p_drop as specified in data frame name.
@@ -275,12 +294,16 @@ class System_Analysis:
         for CellsPair in itertools.combinations(CellsIndexSetS, r=2):
             i = CellsPair[0]
             j = CellsPair[1]
-            A[i, j] = sim(set(data.iloc[[i]]),set(data.iloc[[j]]))
+
+            set_i = set([i for i in str(df[key].iloc[[i]].values[0]).split('+ ')])
+            set_j = set([i for i in str(df[key].iloc[[j]].values[0]).split('+ ')])
+            A[i, j] = sim(set_i, set_j)
+
             A[j, i] = A[i, j]
         return 1 - A
 
     def clustering(self, key, Threshold):
-        A_dist = self.Rapid_SimilarityMatrix(key = key)
+        A_dist = self.Rapid_SimilarityMatrix(key=key)
 
         clustering = AgglomerativeClustering(distance_threshold=Threshold, n_clusters=None, affinity='precomputed',
                                              linkage='complete',
@@ -292,18 +315,19 @@ class System_Analysis:
         df = self.df
         detected_cells_id = ~(df[key_drop].isnull())
 
-        clustering_true = self.clustering(key = key_true, Threshold=10**-300)
+        clustering_true = self.clustering(key=key_true, Threshold=10 ** -300)
 
-        V_measured =[]
+        V_measured = []
         for Clustering_Threshold in range(20):
-            Thres = Clustering_Threshold / 19 + 10**-300
-            clustering_drop = self.clustering(key = key_drop, Threshold=Thres)
+            Thres = Clustering_Threshold / 19 + 10 ** -300
+            clustering_drop = self.clustering(key=key_drop, Threshold=Thres)
             (homogeneity, completeness, v_measure) = \
-                metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id], clustering_drop[detected_cells_id])
+                metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id],
+                                                           clustering_drop[detected_cells_id])
             V_measured.append(v_measure)
-            
-        V_index=V_measured.index(max(V_measured))
-        Threshold = V_index /19 + 10**-300
+
+        V_index = V_measured.index(max(V_measured))
+        Threshold = V_index / 19 + 10 ** -300
         return (max(V_measured), Threshold)
 
     def number_of_perfect_clusters(self, key_true, key_drop):
@@ -322,31 +346,40 @@ class System_Analysis:
             V_measured.append(v_measure)
         V_index = V_measured.index(max(V_measured))
         Threshold = V_index / 19 + 10 ** -300
-        labels_pred = self.clustering(key=key_true, Threshold=Threshold)
-        label_true = self.clustering(key=key_drop, Threshold=10 ** -300)
+        labels_pred = self.clustering(key=key_drop, Threshold=Threshold)
+        label_true = self.clustering(key=key_true, Threshold=10 ** -300)
+        # print('labels: \n', label_true, labels_pred)
+        # np.set_printoptions(threshold=np.inf)
+        set_pred=set(np.sort(labels_pred))
+        set_true=set(np.sort(label_true))
+        # print(set(np.sort(labels_pred)))
+        # print(set(np.sort(label_true)))
         A = contingency_matrix(label_true, labels_pred)
         (num_true_clust, num_pred_clust) = A.shape
 
+        print((num_true_clust, num_pred_clust))
+
         num = 0
-        perfect_clusters_id_in_drop=[]
+        perfect_clusters_id_in_drop = []
         for row in range(num_true_clust):
             if len(np.where(A[row] > 0)[0]) == 1:
                 # print(row)
-                # print(A[row])
+                #print(A[row])
                 col = np.where(A[row] > 0)[0]
-                # print(col)
                 # print(A[:,col])
                 # print(sum(A[:,col]))
                 if sum(A[:, col])[0] == A[row, col]:
                     num = num + 1
                     perfect_clusters_id_in_drop.append(col)
+                    #print(label_true[row], labels_pred[col], 'row', row, col)
 
-        print("#perfect_clusters=", num)
-        return (num,perfect_clusters_id_in_drop)
+        #print("#perfect_clusters=", num)
+        return (num, perfect_clusters_id_in_drop)
+
 
 class Lineages_Analysis:
 
-    def __init__(self,df):
+    def __init__(self, df):
         self.df = df
 
     def num_lineages_between_times(self, times_true, times_drop):
@@ -355,59 +388,78 @@ class Lineages_Analysis:
         df = self.df
         # propagated_time_key_true =[]
         # propagated_time_key_drop=[]
-        total=[]
-        total_true=[]
-        total_drop=[]
-        for (item_true, item_drop) in zip(times_true,times_drop):
+        total = []
+        total_true = []
+        total_drop = []
+        for (item_true, item_drop) in zip(times_true, times_drop):
             # propagated_time_key_true.append(item_true)
             # propagated_time_key_drop.append(item_drop)
-            total_true = np.concatenate((total_true,df[item_true]))
-            total_drop = np.concatenate((total_drop,df[item_drop]))
+            total_true = np.concatenate((total_true, df[item_true]))
+            total_drop = np.concatenate((total_drop, df[item_drop]))
         df_total = pd.DataFrame(total_true, columns=['cells_id_all_true'])
         df_total['cells_id_all_drop'] = total_drop
-        detected_cells_id = ~(df_total.isnull())
-        sys_all = System_Analysis(df_total)
 
-        (v_score, Thres) =  sys_all.clustering_score(key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+        # print(df_total)
 
-        df_total['gloabl_cluster']= sys_all.clustering( key ='cells_id_all_drop' , Threshold = Thres)
+        detected_cells_id = df_total[(~(df_total['cells_id_all_drop'].isnull()))]
+        detected_cells_id = df_total.loc[df_total['cells_id_all_drop'] != '']
 
-        #print(df_total)
+        df_total_measured = detected_cells_id
 
-        #find the perfect global clusters      
-        (num_clustering_true,perfect_clusters_id_in_drop) = sys_all.number_of_perfect_clusters(key_true='cells_id_all_true', key_drop='cells_id_all_drop')
-        #print('# perfect_clusters = ',  (num_clustering_true,perfect_clusters_id_in_drop))
+        # print(df_total['cells_id_all_true'].dtypes, df_total['cells_id_all_drop'].dtypes)
 
-        #count perfect clusters propagate through time
-        init=0
-        j=0
-        sets=[set() for i in range(len(times_true))]
+        df_total.applymap(lambda x: str(x).split('.0')[0])
 
-        for (item_true, item_drop) in zip(times_true,times_drop):
-            num_detected_cells_in_each_prop = (~(df[item_drop].isnull())).shape[0]
-            fini = init + min(num_detected_cells_in_each_prop,df.shape[0])
-        #    print(item_drop,num_detected_cells_in_each_prop,fini)
-            sets[j]=set(df_total['gloabl_cluster'][init:fini-1])
-        #    print(sets[j])
+        sys_all = System_Analysis(df_total_measured)
+        (v_score, Thres) = sys_all.clustering_score(key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+        df_total_measured['gloabl_cluster'] = sys_all.clustering(key='cells_id_all_drop', Threshold=Thres)
+
+        df_total.applymap(lambda x: str(x).split('.0')[0])
+
+        pd.set_option('display.max_rows', None)
+
+        print(v_score, Thres)
+        print(df_total)
+        print(df_total_measured)
+
+        sys_all = System_Analysis(df_total_measured)
+
+        # find the perfect global clusters
+        (num_clustering_true, perfect_clusters_id_in_drop) = sys_all.number_of_perfect_clusters(
+            key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+        print('# perfect_clusters = ', (num_clustering_true, perfect_clusters_id_in_drop))
+
+        # count perfect clusters propagate through time
+        init = 0
+        j = 0
+        sets = [set() for i in range(len(times_true))]
+
+        df = self.df
+
+        for (item_true, item_drop) in zip(times_true, times_drop):
+            # print(df)
+            # num_detected_cells_in_each_prop = (~(df[item_drop].isnull())).shape[0]
+            num_detected_cells_in_each_prop = (~df[item_drop].isnull()).sum()
+            fini = init + min(num_detected_cells_in_each_prop, df.shape[0])
+            print(item_drop, num_detected_cells_in_each_prop, fini)
+            # print('\n \n', df_total['gloabl_cluster'].iloc[init:fini - 1])
+            sets[j] = set(df_total_measured['gloabl_cluster'].loc[init:fini - 1])
+            print(sets[j])
             init = fini
-            j = j+1
+            j = j + 1
 
         prop_set = sets[0]
-        #print(prop_set, sets[0] & sets[1])
+        # print(prop_set, sets[0] & sets[1])
         for i in range(len(sets)):
-          prop_set = prop_set & sets[i]
+            prop_set = prop_set & sets[i]
         #  print(prop_set)
 
-        print('len_prop_set=',len(prop_set))
-        
-        return len(prop_set)
-        
+        print('propagated sets=', prop_set)
+        print('prefect sets=', set([item[0] for item in perfect_clusters_id_in_drop]))
 
-        
+        print('# perfect propagated sets=', len(prop_set & set([item[0] for item in perfect_clusters_id_in_drop])))
 
-
-
-
+        return len(prop_set & set([item[0] for item in perfect_clusters_id_in_drop]))
 
 
 class Simulation:
@@ -438,7 +490,7 @@ class Simulation:
 def barcodes_id_list(system):
     labels = ["" for x in range(system.shape[0])]
     for k in range(system.shape[0]):
-        labels[k] = ''.join("+ ").join([str(l) for l in np.flatnonzero(system[k, :])])
+        labels[k] = ''.join("+ ").join([str(int(l)) for l in np.flatnonzero(system[k, :])])
     return labels
 
 
