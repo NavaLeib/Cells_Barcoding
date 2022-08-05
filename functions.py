@@ -402,9 +402,16 @@ class Lineages_Analysis:
         # print(df_total)
 
         detected_cells_id = df_total[(~(df_total['cells_id_all_drop'].isnull()))]
-        detected_cells_id = df_total.loc[df_total['cells_id_all_drop'] != '']
+        detected_cells_id = detected_cells_id.loc[detected_cells_id['cells_id_all_drop'] != '']
+        detected_cells_id = detected_cells_id.loc[detected_cells_id['cells_id_all_drop'] != 'NaN']
 
         df_total_measured = detected_cells_id
+
+        df_total_measured.dropna(axis=0, how='any')
+        # detected_cells_id = df_total[(~(df_total['cells_id_all_drop'].isnull()))]
+        # detected_cells_id = df_total.loc[df_total['cells_id_all_drop'] != '']
+
+        #df_total_measured = detected_cells_id
 
         # print(df_total['cells_id_all_true'].dtypes, df_total['cells_id_all_drop'].dtypes)
 
