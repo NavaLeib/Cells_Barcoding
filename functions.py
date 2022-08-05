@@ -446,8 +446,9 @@ class Lineages_Analysis:
             fini = init + min(num_detected_cells_in_each_prop, df.shape[0])
             print(item_drop, num_detected_cells_in_each_prop, fini)
             # print('\n \n', df_total['gloabl_cluster'].iloc[init:fini - 1])
-            sets[j] = set(df_total_measured['gloabl_cluster'].loc[init:fini - 1])
+            sets[j] = set(df_total_measured['gloabl_cluster'].iloc[init:fini ])
             print(sets[j])
+            print(df_total_measured['gloabl_cluster'].iloc[init:fini ])
             init = fini
             j = j + 1
 
