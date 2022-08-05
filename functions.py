@@ -408,12 +408,8 @@ class Lineages_Analysis:
         df_total_measured = detected_cells_id
 
         df_total_measured.dropna(axis=0, how='any')
-        # detected_cells_id = df_total[(~(df_total['cells_id_all_drop'].isnull()))]
-        # detected_cells_id = df_total.loc[df_total['cells_id_all_drop'] != '']
 
-        #df_total_measured = detected_cells_id
-
-        # print(df_total['cells_id_all_true'].dtypes, df_total['cells_id_all_drop'].dtypes)
+        df_total_measured = detected_cells_id
 
         df_total.applymap(lambda x: str(x).split('.0')[0])
 
