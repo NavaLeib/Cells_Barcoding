@@ -130,13 +130,22 @@ def BarcodesSet(X):
     [l for l in np.flatnonzero(X[i,:])
 '''
 
+def exponential_skew_generator_system(cells, barcodes, cells_uniform_susceptibility, exp_scale, skew_param):
 
-def exponential_generator_system(cells, barcodes, exp_scale):
-    p_ins_exp = np.exp(-np.arange(barcodes) / exp_scale) / (np.exp(-np.arange(barcodes) / exp_scale).sum())
+    """
+    skep_param => large value gives less skew, low value gives string skew
+    cells_uniform_susceptibility => boolian; True= all cells are idenitical, #barcodes is Poisson. False = # barocdes is exponential
+    """
+
+    p_ins_exp = np.exp(-np.arange(barcodes) / skew_param) / (np.exp(-np.arange(barcodes) / skew_param).sum())
+
     rng = np.random.default_rng()
     system = np.zeros(shape=(cells, barcodes))
     for cell in range(cells):
-        L = int(np.random.exponential(scale=exp_scale))
+        if cells_uniform_susceptibility:
+            L = int(np.random.poisson(exp_scale))
+        else:
+            L = int(np.random.exponential(scale=exp_scale))
         bar_index = []
         p_ins_temp = p_ins_exp.copy()
         temp = 0
@@ -174,7 +183,9 @@ class LargeSystem:
             #             if np.random.rand() <= (XX[i, :].sum() / barcodes) ** (1 / 1) + 1 / (2 * barcodes):
             #                 XX[i][bar] = 1
             # self.X = XX
-            XX = exponential_generator_system(cells, barcodes, p * barcodes)
+            XX = exponential_skew_generator_system(cells=cells, barcodes=barcodes,
+                                                   cells_uniform_susceptibility=False, exp_scale=p * barcodes,
+                                                   skew_param=barcodes)
         self.X = XX
         return self.X
 
@@ -308,9 +319,11 @@ class System_Analysis:
         clustering = AgglomerativeClustering(distance_threshold=Threshold, n_clusters=None, affinity='precomputed',
                                              linkage='complete',
                                              compute_full_tree=True).fit(A_dist)
+
+
         return clustering.labels_
 
-    def clustering_score(self, key_true, key_drop):
+    def clustering_score(self, key_true, key_drop,max_lineages):
         # "removing" the undetaected cells form teh analysis:
         df = self.df
         detected_cells_id = ~(df[key_drop].isnull())
@@ -318,6 +331,7 @@ class System_Analysis:
         clustering_true = self.clustering(key=key_true, Threshold=10 ** -300)
 
         V_measured = []
+        pred_num_lin = []
         for Clustering_Threshold in range(20):
             Thres = Clustering_Threshold / 19 + 10 ** -300
             clustering_drop = self.clustering(key=key_drop, Threshold=Thres)
@@ -325,18 +339,40 @@ class System_Analysis:
                 metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id],
                                                            clustering_drop[detected_cells_id])
             V_measured.append(v_measure)
+            pred_num_lin.append(len(set(clustering_drop)))
 
-        V_index = V_measured.index(max(V_measured))
-        Threshold = V_index / 19 + 10 ** -300
-        return (max(V_measured), Threshold)
 
-    def number_of_perfect_clusters(self, key_true, key_drop):
+
+        # V_index = V_measured.index(max(V_measured))
+        # Threshold = V_index / 19 + 10 ** -300
+        #
+        # print('homogeneity_completeness_v_measure',(max(V_measured), Threshold))
+        # print('pred num lin', pred_num_lin[V_index])
+
+
+        max_num_lin=max_lineages
+        X=[abs(i-max_num_lin) for i in pred_num_lin]
+        print(max_num_lin, max_lineages)
+        X_index=X.index(min(X))
+        V_index = X_index
+        #print('pred num lin', pred_num_lin[X_index])
+        Threshold = X_index / 19 + 10 ** -300
+
+        clustering_drop = self.clustering(key=key_drop, Threshold=Threshold)
+        print('homogeneity_completeness_v_measure', V_measured[X_index], Threshold)
+        print('fowlkes_mallows_score', metrics.fowlkes_mallows_score(clustering_true[detected_cells_id],
+                                                           clustering_drop[detected_cells_id]))
+
+        return (V_measured[X_index], Threshold)
+
+    def number_of_perfect_clusters(self, key_true, key_drop,max_lineages):
         df = self.df
         detected_cells_id = ~(df[key_drop].isnull())
 
         clustering_true = self.clustering(key=key_true, Threshold=10 ** -300)
 
         V_measured = []
+        pred_num_lin = []
         for Clustering_Threshold in range(20):
             Thres = Clustering_Threshold / 19 + 10 ** -300
             clustering_drop = self.clustering(key=key_drop, Threshold=Thres)
@@ -344,7 +380,13 @@ class System_Analysis:
                 metrics.homogeneity_completeness_v_measure(clustering_true[detected_cells_id],
                                                            clustering_drop[detected_cells_id])
             V_measured.append(v_measure)
-        V_index = V_measured.index(max(V_measured))
+            pred_num_lin.append(len(set(clustering_drop)))
+
+        max_num_lin = max_lineages
+        X = [abs(i - max_num_lin) for i in pred_num_lin]
+        X_index = X.index(min(X))
+        V_index = X_index
+        # V_index = V_measured.index(max(V_measured))
         Threshold = V_index / 19 + 10 ** -300
         labels_pred = self.clustering(key=key_drop, Threshold=Threshold)
         label_true = self.clustering(key=key_true, Threshold=10 ** -300)
@@ -368,7 +410,7 @@ class System_Analysis:
                 col = np.where(A[row] > 0)[0]
                 # print(A[:,col])
                 # print(sum(A[:,col]))
-                if sum(A[:, col])[0] == A[row, col]:
+                if (sum(A[:, col])[0] == A[row, col]) and (sum(A[row]) == A[row, col]):
                     num = num + 1
                     perfect_clusters_id_in_drop.append(col)
                     #print(label_true[row], labels_pred[col], 'row', row, col)
@@ -411,25 +453,27 @@ class Lineages_Analysis:
 
         df_total_measured = detected_cells_id
 
-        df_total.applymap(lambda x: str(x).split('.0')[0])
+        df_total_measured.applymap(lambda x: str(x).split('.0')[0])
 
         sys_all = System_Analysis(df_total_measured)
-        (v_score, Thres) = sys_all.clustering_score(key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+        max_lineages= ((~df[times_drop].isnull()).sum())
+        (v_score, Thres) = sys_all.clustering_score(key_true='cells_id_all_true', key_drop='cells_id_all_drop',
+                                                    max_lineages=max_lineages.values[0])
         df_total_measured['gloabl_cluster'] = sys_all.clustering(key='cells_id_all_drop', Threshold=Thres)
 
-        df_total.applymap(lambda x: str(x).split('.0')[0])
+        df_total_measured.applymap(lambda x: str(x).split('.0')[0])
 
         pd.set_option('display.max_rows', None)
 
-        print(v_score, Thres)
-        print(df_total)
+        # print(v_score, Thres)
+        # print(df_total)
         print(df_total_measured)
 
         sys_all = System_Analysis(df_total_measured)
 
         # find the perfect global clusters
         (num_clustering_true, perfect_clusters_id_in_drop) = sys_all.number_of_perfect_clusters(
-            key_true='cells_id_all_true', key_drop='cells_id_all_drop')
+            key_true='cells_id_all_true', key_drop='cells_id_all_drop',max_lineages=max_lineages.values[0])
         print('# perfect_clusters = ', (num_clustering_true, perfect_clusters_id_in_drop))
 
         # count perfect clusters propagate through time
@@ -444,11 +488,11 @@ class Lineages_Analysis:
             # num_detected_cells_in_each_prop = (~(df[item_drop].isnull())).shape[0]
             num_detected_cells_in_each_prop = (~df[item_drop].isnull()).sum()
             fini = init + min(num_detected_cells_in_each_prop, df.shape[0])
-            print(item_drop, num_detected_cells_in_each_prop, fini)
+            #print(item_drop, num_detected_cells_in_each_prop, fini)
             # print('\n \n', df_total['gloabl_cluster'].iloc[init:fini - 1])
             sets[j] = set(df_total_measured['gloabl_cluster'].iloc[init:fini ])
-            print(sets[j])
-            print(df_total_measured['gloabl_cluster'].iloc[init:fini ])
+            #print(sets[j])
+            #print(df_total_measured['gloabl_cluster'].iloc[init:fini ])
             init = fini
             j = j + 1
 

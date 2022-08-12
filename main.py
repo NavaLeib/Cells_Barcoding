@@ -8,7 +8,7 @@ import os
 import csv
 
 import matplotlib.pyplot as plt
-barcodes = 10 ** 4
+barcodes = 10 ** 3
 cells = 10 ** 3
 
 
@@ -73,19 +73,19 @@ for f in csv_file_list:
 print('UPLOAD DATA')
 
 
-ins=[0.5,2,10]  #MOI array
+
 drop = [0, 0.01, 0.1, 0.5]  #probability drop array
 
-ins=[0.5,2,5,10]  #MOI array  ##ADDED TO 10^3 CELLS ONLY MOI=5!!!
+ins=[0.1,0.5,2,5,10]  #MOI array  ##ADDED TO 10^3 CELLS ONLY MOI=5!!!
 
-for p_i in range(4):#range(len(ins)):
+for p_i in range(4,5):#range(len(ins)):
     p_ins= ins[p_i]
 
-    for p_d in range(1,4):
+    for p_d in range(2,3):
 
         p_drop = drop[p_d]
 
-        ##THIS CHANGE TO RUN ON UOT SEREVER ONLY
+        # ##THIS CHANGE TO RUN ON UOT SEREVER ONLY
         file_name = '\\barcodes_list_id_cells' + str(cells) +'_barcodes' +str(barcodes) + '_moi' + str(p_ins) + \
                    '_drop' + str(p_drop) + '.csv'
         if p_drop == 0:
