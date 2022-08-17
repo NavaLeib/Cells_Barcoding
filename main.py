@@ -68,7 +68,7 @@ for f in csv_file_list:
     #print(file_name, '\n')
     data[file_name] = pd.read_csv(f)
 
-# print(data.keys())
+print(data.keys())
 
 print('UPLOAD DATA')
 
@@ -79,22 +79,22 @@ drop = [0, 0.01, 0.1, 0.5]  #probability drop array
 ins=[0.1,0.5,2,5,10]  #MOI array  ##ADDED TO 10^3 CELLS ONLY MOI=5!!!
 
 for p_i in range(4,5):#range(len(ins)):
-    p_ins= ins[p_i]
+    p_ins=ins[p_i]
 
-    for p_d in range(2,3):
+    for p_d in range(1,4):
 
         p_drop = drop[p_d]
 
-        # ##THIS CHANGE TO RUN ON UOT SEREVER ONLY
+        ##THIS CHANGE TO RUN ON UOT SEREVER ONLY
         file_name = '\\barcodes_list_id_cells' + str(cells) +'_barcodes' +str(barcodes) + '_moi' + str(p_ins) + \
-                   '_drop' + str(p_drop) + '.csv'
+                   '_drop' + str(p_drop) + '_exp.csv'
         if p_drop == 0:
            file_name = '\\barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + '_moi' + str(p_ins) + \
                        '_nodrop.csv'
                         
                         
         # file_name = 'barcodes_list_id_cells' + str(cells) +'_barcodes' +str(barcodes) + '_moi' + str(p_ins) + \
-        #             '_drop' + str(p_drop) + '.csv'
+        #             '_drop' + str(p_drop) + '_exp.csv'
         # if p_drop == 0:
         #     file_name = 'barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + '_moi' + str(p_ins) + \
         #                 '_nodrop.csv'
@@ -104,10 +104,16 @@ for p_i in range(4,5):#range(len(ins)):
         df.applymap(lambda x: str(x).split('.0')[0])
 
         print('start analysis; p_ins:', p_ins, ', p_drop:', p_drop)
+        #analysis = System_Analysis(df)
+        # A=analysis.Rapid_SimilarityMatrix(key='drop_no_propagation')
+        # plt.hist(1-A[np.triu_indices(A.shape[0], k = 1)],alpha=0.5)
+        # plt.yscale('log')
+
         analysis = Lineages_Analysis(df)
         analysis.num_lineages_between_times(['propagation_5geneartions_true', 'propagation_10geneartions_true','propagation_15geneartions_true'],
         ['drop_5generation', 'drop_10generation','drop_15generation'])
-        # analysis.num_lineages_between_times(['drop_5generation','drop_10generation'])
+
+        #analysis.num_lineages_between_times(['drop_5generation','drop_10generation'])
         #
         #analysis = System_Analysis(df)
         #key = 'propagation_5geneartions_true'

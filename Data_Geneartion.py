@@ -66,14 +66,14 @@ data_full = {}
 
 ins = [0.1,0.5, 2,5, 10]
 #ins=[5]
-for p_i in range(3,4):
+for p_i in range(5):
 
     # p_ins=p_i+0.5
     p_ins = ins[p_i]
 
     system_init = LargeSystem(barcodes=barcodes, cells=cells)
     p = p_ins / barcodes
-    system_true = system_init.generate_barcoded_cells(p=p, Poisson=True)
+    system_true = system_init.generate_barcoded_cells(p=p, Poisson=False)
 
     system_true = system_true[system_true.sum(axis=1) > 0]  # taking only cells with labels (=barcodes inserted)
 
@@ -102,11 +102,11 @@ for p_i in range(3,4):
 
     df_total = pd.DataFrame(barcodes_id_list(Total_true), columns=['true'])
 
-    clustering_total = AgglomerativeClustering(distance_threshold=epsilon, n_clusters=None, affinity='precomputed',
-                                               linkage='complete',
-                                               compute_full_tree=True).fit(A_total_true)
-
-    df_total['true_cluster'] = clustering_total.labels_
+    # clustering_total = AgglomerativeClustering(distance_threshold=epsilon, n_clusters=None, affinity='precomputed',
+    #                                            linkage='complete',
+    #                                            compute_full_tree=True).fit(A_total_true)
+    #
+    # df_total['true_cluster'] = clustering_total.labels_
 
     print('p_ins=', p_ins)
 
@@ -114,7 +114,7 @@ for p_i in range(3,4):
               '_moi' + str(p_ins) + '_nodrop.csv'
 
     root = 'Data'
-    subdir = 'cells'+ str(cells) + '_barcodes' + str(barcodes)
+    subdir = 'cells'+ str(cells) + '_barcodes' + str(barcodes) + 'exp'
     outdir = os.path.join(root, subdir)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -146,7 +146,7 @@ for p_i in range(3,4):
         df['drop_' + str(gens1 + gens2+ gens3) + 'generation'] = barcodes_id_list(np.array(system6_drop))
 
         outname = 'barcodes_list_id_cells' + str(cells) + '_barcodes' + str(barcodes) + \
-                  '_moi' + str(p_ins) + '_drop' + str(p_drop) + '.csv'
+                  '_moi' + str(p_ins) + '_drop' + str(p_drop) + '_exp.csv'
 
         df.to_csv(f"{outdir}/{outname}")
 

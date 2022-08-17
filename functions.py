@@ -143,9 +143,9 @@ def exponential_skew_generator_system(cells, barcodes, cells_uniform_susceptibil
     system = np.zeros(shape=(cells, barcodes))
     for cell in range(cells):
         if cells_uniform_susceptibility:
-            L = int(np.random.poisson(exp_scale))
+            L = round(np.random.poisson(exp_scale))
         else:
-            L = int(np.random.exponential(scale=exp_scale))
+            L = round(np.random.exponential(scale=exp_scale))
         bar_index = []
         p_ins_temp = p_ins_exp.copy()
         temp = 0
@@ -185,7 +185,7 @@ class LargeSystem:
             # self.X = XX
             XX = exponential_skew_generator_system(cells=cells, barcodes=barcodes,
                                                    cells_uniform_susceptibility=False, exp_scale=p * barcodes,
-                                                   skew_param=barcodes)
+                                                   skew_param=barcodes/10)
         self.X = XX
         return self.X
 
