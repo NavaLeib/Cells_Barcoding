@@ -419,6 +419,18 @@ class System_Analysis:
         return (num, perfect_clusters_id_in_drop)
 
 
+    def number_of_effective_used_barcodes(self):
+        df= self.df
+        set1 = set(df['barcodes_id_true'])
+        set_temp=set()
+        for item in set1:
+            set_temp = set_temp | set(item.split("+ "))
+
+        print(len(set_temp))
+
+        return len(set_temp)
+
+
 class Lineages_Analysis:
 
     def __init__(self, df):
