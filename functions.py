@@ -297,6 +297,8 @@ class System_Analysis:
         :return: a matrix of size (cells X cells)
         """
         df = self.df
+        df.applymap(lambda x: str(x).split('.0')[0])
+
         data = df[key]
 
         cells = df.shape[0]
@@ -311,6 +313,7 @@ class System_Analysis:
             A[i, j] = sim(set_i, set_j)
 
             A[j, i] = A[i, j]
+
         return 1 - A
 
     def clustering(self, key, Threshold):
@@ -419,7 +422,7 @@ class System_Analysis:
         return (num, perfect_clusters_id_in_drop)
 
 
-    def number_of_effective_used_barcodes(self):
+    def diversity_used_barcodes_no_drop(self):
         df= self.df
         set1 = set(df['barcodes_id_true'])
         set_temp=set()
@@ -429,6 +432,45 @@ class System_Analysis:
         print(len(set_temp))
 
         return len(set_temp)
+
+    def diversity_and_used_barcodes_after_drop(self):
+        df= self.df
+        bars = df.drop_no_propagation
+
+        #remove non-measured cells
+        bars=bars[~bars.isnull()]
+        bars = list(bars[bars!='nan'])
+
+        #create list of inserted  barcodes
+        B = []
+        for i in range(len(bars)):
+            B.append(str(bars[i]).split('+ '))
+
+        print('number of barcodes units (not necessarily different) = ' +str(len([item for sublist in B for item in sublist])) +
+              ' number of differnt barcodes (= diveristy) = ' + str(len(set([item for sublist in B for item in sublist]))))
+
+        return (str(len([item for sublist in B for item in sublist])),str(len(set([item for sublist in B for item in sublist]))))
+
+    def num_cells_with_given_barcodes(self, barcodes,p_i):
+        df= self.df
+        bars = df.drop_no_propagation
+
+        #remove non-measured cells
+        bars=bars[~bars.isnull()]
+        bars = list(bars[bars!='nan'])
+
+        #create list of inserted  barcodes
+        B = []
+        for i in range(len(bars)):
+            B.append(str(bars[i]).split('+ '))
+
+        BB=[item for sublist in B for item in sublist]
+        mm= [5,10,30,80,100]
+
+        n, bins = np.histogram(np.unique(BB, return_counts=True)[1], bins=np.arange(0,mm[p_i],1) )
+        n[0] = barcodes-len(set(BB))  ##this add the number of unused barcodes to the zero bin
+
+        return (n,bins)
 
 
 class Lineages_Analysis:
@@ -479,14 +521,14 @@ class Lineages_Analysis:
 
         # print(v_score, Thres)
         # print(df_total)
-        print(df_total_measured)
+        #print(df_total_measured)
 
         sys_all = System_Analysis(df_total_measured)
 
         # find the perfect global clusters
         (num_clustering_true, perfect_clusters_id_in_drop) = sys_all.number_of_perfect_clusters(
             key_true='cells_id_all_true', key_drop='cells_id_all_drop',max_lineages=max_lineages.values[0])
-        print('# perfect_clusters = ', (num_clustering_true, perfect_clusters_id_in_drop))
+        #print('# perfect_clusters = ', (num_clustering_true, perfect_clusters_id_in_drop))
 
         # count perfect clusters propagate through time
         init = 0
@@ -514,10 +556,29 @@ class Lineages_Analysis:
             prop_set = prop_set & sets[i]
         #  print(prop_set)
 
-        print('propagated sets=', prop_set)
-        print('prefect sets=', set([item[0] for item in perfect_clusters_id_in_drop]))
+        print('propagated sets=', len(prop_set),prop_set)
+        print('prefect sets=', len(set([item[0] for item in perfect_clusters_id_in_drop])),
+              set([item[0] for item in perfect_clusters_id_in_drop]))
 
-        print('# perfect propagated sets=', len(prop_set & set([item[0] for item in perfect_clusters_id_in_drop])))
+        perfect_prop_set = prop_set & set([item[0] for item in perfect_clusters_id_in_drop])
+
+        print('# perfect propagated sets=', len(perfect_prop_set),perfect_prop_set)
+
+        #print(df_total_measured)
+
+        ## remove the duplication in seeding:
+        ignore_duplicated_seeds = False
+        df.applymap(lambda x: str(x).split('.0')[0])
+        if ignore_duplicated_seeds == False:
+            for clust in list(perfect_prop_set):
+                barcodes_cassette_in_clust=[str(item) for item in df_total_measured[df_total_measured['gloabl_cluster']==clust].cells_id_all_true.values]
+                #print(clust,list(set(barcodes_cassette_in_clust)))
+                for bar in list(set(barcodes_cassette_in_clust)):
+                    if df[df.barcodes_id_true == str(bar).split('.0')[0]].shape[0] > 1:
+                #        print(clust)
+                        perfect_prop_set = perfect_prop_set - set([clust])
+
+        print('# perfect propagated sets (where omit duplicated seeds) =', len(perfect_prop_set), perfect_prop_set)
 
         return len(prop_set & set([item[0] for item in perfect_clusters_id_in_drop]))
 
