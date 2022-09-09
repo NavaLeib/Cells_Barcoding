@@ -639,8 +639,10 @@ class Simulation_VeryLarge:
                 if np.random.rand() <= p:  # (X[i,:].sum()/barcodes)**(1/1)+1/(2*barcodes):
                     if bar + '+ ' in system[i]:
                         system[i] = system[i].replace(bar + '+ ', '')
-                    else:
+                    elif '+ '+ bar in system[i]:
                         system[i] = system[i].replace('+ '+ bar, '')
+                    else:
+                        system[i] = system[i].replace(bar, '')
             #print(system[i])
         return system
 

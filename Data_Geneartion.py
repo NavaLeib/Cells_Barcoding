@@ -66,7 +66,7 @@ data_full = {}
 
 ins = [0.1,0.5, 2,5, 10]
 #ins=[5]
-for p_i in range(2,3):
+for p_i in range(5):
 
     # p_ins=p_i+0.5
     p_ins = ins[p_i]
@@ -137,7 +137,7 @@ for p_i in range(2,3):
     df.to_csv(f"{outdir}/{outname}")
 
     drop = [0, 0.01, 0.1, 0.5]
-    for p_d in range(3,4):
+    for p_d in range(1,4):
 
         # p_drop=p_d/10
         p_drop = drop[p_d]
