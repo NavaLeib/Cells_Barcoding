@@ -278,7 +278,7 @@ class LargeSystem:
             A[j, i] = A[i, j]
             if j == i:
                 A[i, j] = 0
-
+        return (1 - A)
 
 class System_Analysis:
 
