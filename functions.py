@@ -564,6 +564,7 @@ class Lineages_Analysis:
 
         # print(df_total_measured)
 
+        good_cassette_L =[]
         ## remove the duplication in seeding:
         ignore_duplicated_seeds = False
         df.applymap(lambda x: str(x).split('.0')[0])
@@ -571,13 +572,33 @@ class Lineages_Analysis:
             for clust in list(perfect_prop_set):
                 barcodes_cassette_in_clust = [str(item) for item in df_total_measured[
                     df_total_measured['gloabl_cluster'] == clust].cells_id_all_true.values]
-                # print(clust,list(set(barcodes_cassette_in_clust)))
                 for bar in list(set(barcodes_cassette_in_clust)):
-                    if df[df.barcodes_id_true == str(bar).split('.0')[0]].shape[0] > 1:
-                        #        print(clust)
-                        perfect_prop_set = perfect_prop_set - set([clust])
+                     if df[df.barcodes_id_true == str(bar).split('.0')[0]].shape[0] > 1:
+                         perfect_prop_set = perfect_prop_set - set([clust])
+                ##the following is added to assses the length of correct cassettes
+                x = list(set(barcodes_cassette_in_clust))
+                good_cassette_L.append( len( x[0].split('+ ')))
+                print(clust, x,x[0].split('+ '), len( x[0].split('+ ')))
+
+        #print(df.keys)
+        all_L = [len(str(item).split('+ ')) for item in df.barcodes_id_true.values]
+        #print('***', all_L)
+        #all_L.append(len(list(set(barcodes_cassette_in_clust))))
+
+        bins = [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5]
+        import matplotlib.pyplot as plt
+        plt.hist(all_L, bins=bins, density=True,alpha=0.5, label='all')
+        plt.hist(good_cassette_L, bins=bins, density=True,alpha=0.5,label='correctly measured')
+        plt.xlabel('L',fontsize=20)
+        plt.xticks(fontsize=20)
+        plt.ylabel('P(L)',fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.legend(fontsize=15)
+        plt.show()
 
         print('# perfect propagated sets (where omit duplicated seeds) =', len(perfect_prop_set), perfect_prop_set)
+
+
 
         return len(prop_set & set([item[0] for item in perfect_clusters_id_in_drop]))
 
